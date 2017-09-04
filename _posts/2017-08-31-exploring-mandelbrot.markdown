@@ -1,0 +1,89 @@
+---
+layout: post
+title: "Exploring the Mandelbrot set"
+date: 2017-08-31 22:14:00 +0200
+categories: math, mandelbrot
+---
+
+[The Mandelbrot set][mandelbrot-set] is a set of complex numbers, where each number in the set, $$z_n$$ has the attribute that the sequence
+
+
+$$z_{n+1} = z_{n}^2 + c$$
+
+
+is bounded, meaning that is does not diverge. There are many interesting things about this set, but the one I find the most interesting is the numerous graphical representations of the set. The picture below is from the Wikimedia Commons Free Media Library.
+![From Wikimedia Commons]({{ site.url }}/assets/images/mandelbrot.jpg)
+
+I have always wanted to draw some of these myself, so today I'll do a quick rundown of how to achieve similar drawings. The only libraries I will be using is [matplotlib][matplotlib] and [numpy][numpy].
+
+We can start by defining the area the sequence will operate on. The whole mandelbrot set is interesting between $$\begin{equation} x \in [-2.5, 1] \end{equation}$$ and $$\begin{equation} y \in [-1, 1] \end{equation}$$, so this is where we will define our borders. Also, we need to decide how many points we will evaluate. We will divide our x and y values into N equally spaced points. The linspace function in numpy is perfect for this. 
+
+{% highlight python %}
+
+# Our resulting image will be NxN pixels
+N = 5000
+min_x, max_x = -2.5, 1
+min_y, max_y = -1, 1
+
+X = np.linspace(min_x, max_x, N)
+Y = np.linspace(min_y, max_y, N)
+Z = np.zeros((X.size, Y.size), dtype=np.complex_)
+
+max_len = 4
+max_iters = 255
+
+Iters = np.zeros((X.size, Y.size), dtype=np.int)
+{% endhighlight %}
+
+Now that we have defined our domain, we just need to iterate through the pixels and calculate the number of iterations for each complex number. The only thing that sticks out here is how we define a complex number. In Python, you don't need to create your own representation. You can represent imaginary numbers in an easy manner. The 'complex' class has everything we need (and more!) implemented.
+{% highlight python %}
+num = 3 + 4j
+
+type(num)
+#=> <class 'complex'>
+abs(num)
+#=> 5.0
+num.real
+#=> 3
+num.imag
+#=> 4
+{% endhighlight %}
+
+Our main loop will be really simple. We iterate through each value, calculating the mandelbrot sequence and seeing if it is bounded. The number of iterations the number takes will define the pixel intensity of the number.
+
+{% highlight python %}
+
+for i in range(X.size):
+    for j in range(Y.size):
+    	num_iters = 0
+	# Make a complex number - real part X[i], imaginary part Y[j]
+	c = X[i] + 1j*Y[j]
+	Z[i][j] = c
+	while(abs(Z[i][j]) < max_len and num_iters < max_iters):
+	    Z[i][j] = Z[i][yj]**2 + c
+	    num_iters += 1
+	Iters[i][j] = num_iters
+
+{% endhighlight %}
+
+Now that we have the number of iterations for each number, we need to normalize this in order to plot it in a sensible way. For this, we will use the matplotlib colormap module, which can transform values between 0 and 1 to RGB. I will use the hot colormap, but feel free to change this. It will only affect the colors displayed. We are divinding x with max_iters to normalize the iterations in numbers between 0 and 1.
+
+{% highlight python %}
+Iters = [cm.hot(x/max_iters) for x in Iters.flatten('F')]
+{% endhighlight %}
+
+The last thing we need to do to display this is to get a list of each pair of points in the image. This can be achieved by calling the [numpy meshgrid function][numpy-mesh]. Now we are finally able to call the matplotlib scatter function, where we pass in Iters as our colors for each pixel.
+
+{% highlight python %}
+xx, yy = np.meshgrid(X, Y)
+plt.figure()
+plt.axis('off')
+plt.scatter(xx, yy, c=Iters)
+plt.show()
+{% endhighlight %}
+
+[numpy-mesh]: https://docs.scipy.org/doc/numpy/reference/generated/numpy.meshgrid.html
+[python-pow]: https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types
+[numpy]: http://www.numpy.org/
+[mandelbrot-set]: http://mathworld.wolfram.com/MandelbrotSet.html
+[matplotlib]: https://matplotlib.org/
